@@ -1,0 +1,148 @@
+Program.Sub.ScreenSU.Start
+Gui.frmGLDetail..Create
+Gui.frmGLDetail..Caption("GL Detail")
+Gui.frmGLDetail..Size(9675,6705)
+Gui.frmGLDetail..MinX(0)
+Gui.frmGLDetail..MinY(0)
+Gui.frmGLDetail..Position(0,0)
+Gui.frmGLDetail..BackColor(-2147483633)
+Gui.frmGLDetail..MousePointer(0)
+Gui.frmGLDetail..Event(UnLoad,frmGLDetail_UnLoad)
+Gui.frmGLDetail.dtpBeginDate.Create(DatePicker)
+Gui.frmGLDetail.dtpBeginDate.Size(1935,285)
+Gui.frmGLDetail.dtpBeginDate.Position(90,345)
+Gui.frmGLDetail.dtpEndDate.Create(DatePicker)
+Gui.frmGLDetail.dtpEndDate.Size(1935,285)
+Gui.frmGLDetail.dtpEndDate.Position(2835,345)
+Gui.frmGLDetail.lbl1.Create(Label,"Begin Date:",True,1935,255,0,75,150,True,0,"Arial",8,-2147483633,0)
+Gui.frmGLDetail.lbl2.Create(Label,"End Date:",True,1935,255,0,2850,135,True,0,"Arial",8,-2147483633,0)
+Gui.frmGLDetail.cmdProcess.Create(Button)
+Gui.frmGLDetail.cmdProcess.Size(855,375)
+Gui.frmGLDetail.cmdProcess.Position(5100,330)
+Gui.frmGLDetail.cmdProcess.Caption("Process")
+Gui.frmGLDetail.cmdProcess.Event(Click,cmdProcess_Click)
+Gui.frmGLDetail.gsgcGLDetail.Create(GsGridControl)
+Gui.frmGLDetail.gsgcGLDetail.Size(9285,5265)
+Gui.frmGLDetail.gsgcGLDetail.Position(60,765)
+Gui.frmGLDetail.gsgcGLDetail.Visible(False)
+Gui.frmGLDetail.gsgcGLDetail.Event(RowCellClick,gsgcGLDetail_RowCellClick)
+Program.Sub.ScreenSU.End
+
+Program.Sub.Preflight.Start
+Program.Sub.Preflight.End
+
+Program.Sub.Main.Start
+F.ODBC.Connection!CON.opencompanyconnection(60)
+f.Intrinsic.Control.CallSub(setAnchors)
+GUI.frmGLDetail..Show
+Program.Sub.Main.End
+
+Program.Sub.setAnchors.Start
+f.Intrinsic.Control.Try
+	gui.frmGLDetail.gsgcGLDetail.anchor(15)
+f.Intrinsic.Control.Catch
+	f.Intrinsic.UI.Msgbox(v.Ambient.ErrorDescription)
+	f.Intrinsic.Control.CallSub(frmGLDetail_UnLoad)
+f.Intrinsic.Control.EndTry
+Program.Sub.setAnchors.End
+Program.Sub.cmdProcess_Click.Start
+f.Intrinsic.Control.Try
+	v.Local.ssql.Declare
+	v.Local.sText.Declare
+	v.Local.i.Declare
+	v.Local.dBegin.Declare
+	v.Local.dEnd.Declare
+	
+	v.Local.dBegin.Set(v.Screen.frmGLDetail!dtpBeginDate.Value)
+	v.Local.dEnd.Set(v.Screen.frmGLDetail!dtpEndDate.value)
+	
+'	f.Intrinsic.String.Build("select rtrim(VENDOR) as 'VENDOR', rtrim(VENDOR_NAME) as 'VENDOR_NAME', rtrim(INVOICE_NO) as 'INVOICE_NO', rtrim(PO_NUM) AS 'PO_NUM', AMOUNT_CMPNY, POST_DATE_SQL, '' as 'Notes'  from V_GL_AP_DETAIL WHERE PAY_SEL=0 AND POST_DATE_SQL>='{0}' AND POST_DATE_SQL<='{1}'",v.Local.dBegin.PervasiveDate,v.Local.dEnd.PervasiveDate,v.Local.ssql)
+	f.Intrinsic.String.Build("select rtrim(VENDOR) as 'VENDOR', rtrim(VENDOR_NAME) as 'VENDOR_NAME', rtrim(INVOICE_NO) as 'INVOICE_NO', rtrim(PO_NUM) AS 'PO_NUM', AMOUNT_CMPNY, POST_DATE_SQL, '' as 'Notes', GL_NUMBER as 'GL' from V_GL_AP_DETAIL WHERE PAY_SEL=0 AND POST_DATE_SQL>='{0}' AND POST_DATE_SQL<='{1}'",v.Local.dBegin.PervasiveDate,v.Local.dEnd.PervasiveDate,v.Local.ssql)
+	f.Intrinsic.Control.If(v.DataTable.dt.Exists)
+		f.Data.DataTable.Close("dt")
+	f.Intrinsic.Control.EndIf
+	f.Data.DataTable.CreateFromSQL("dt","con",v.Local.ssql,true)
+	f.Intrinsic.Control.For(v.Local.i,0,v.DataTable.dt.RowCount--,1)
+		f.Intrinsic.String.Build("SELECT TEXT FROM AP_INVC_NOTES WHERE INVOICE='{0}'",v.DataTable.dt(v.Local.i).INVOICE_NO!FIELDVALTRIM,v.Local.ssql)
+		f.ODBC.Connection!con.executeandreturn(v.Local.ssql,v.Local.sText)
+		f.Data.DataTable.SetValue("dt",v.Local.i,"Notes",v.Local.sText)
+	f.Intrinsic.Control.Next(v.Local.i)
+	gui.frmGLDetail.gsgcGLDetail.DataSource("dt")
+	f.Intrinsic.Control.CallSub(setProperties)
+	
+f.Intrinsic.Control.Catch
+	f.Intrinsic.UI.Msgbox(v.Ambient.ErrorDescription)
+	f.Intrinsic.Control.CallSub(frmGLDetail_UnLoad)
+f.Intrinsic.Control.EndTry
+Program.Sub.cmdProcess_Click.End
+
+Program.Sub.setProperties.Start
+f.Intrinsic.Control.Try
+	gui.frmGLDetail.gsgcGLDetail.visible(false)
+	gui.frmGLDetail.gsgcGLDetail.AddGridviewFromDatatable("gv","dt")
+	gui.frmGLDetail.gsgcGLDetail.SetColumnProperty("gv","VENDOR","Caption","Vendor#")
+	gui.frmGLDetail.gsgcGLDetail.SetColumnProperty("gv","VENDOR_NAME","Caption","Vendor Name")
+	gui.frmGLDetail.gsgcGLDetail.SetColumnProperty("gv","INVOICE_NO","Caption","Invoice #")
+	gui.frmGLDetail.gsgcGLDetail.SetColumnProperty("gv","PO_NUM","Caption","PO #")
+	gui.frmGLDetail.gsgcGLDetail.SetColumnProperty("gv","AMOUNT_CMPNY","Caption","Amount")
+	gui.frmGLDetail.gsgcGLDetail.SetColumnProperty("gv","POST_DATE_SQL","Caption","Post Date")
+	gui.frmGLDetail.gsgcGLDetail.SetColumnProperty("gv","GL","Caption","GL")
+	
+	gui.frmGLDetail.gsgcGLDetail.SetColumnProperty("gv","VENDOR","ReadOnly",True)
+	gui.frmGLDetail.gsgcGLDetail.SetColumnProperty("gv","VENDOR_NAME","ReadOnly",True)
+	gui.frmGLDetail.gsgcGLDetail.SetColumnProperty("gv","INVOICE_NO","ReadOnly",True)
+	gui.frmGLDetail.gsgcGLDetail.SetColumnProperty("gv","PO_NUM","ReadOnly",True)
+	gui.frmGLDetail.gsgcGLDetail.SetColumnProperty("gv","AMOUNT_CMPNY","ReadOnly",True)
+	gui.frmGLDetail.gsgcGLDetail.SetColumnProperty("gv","POST_DATE_SQL","ReadOnly",True)
+	gui.frmGLDetail.gsgcGLDetail.SetColumnProperty("gv","GL","ReadOnly",True)
+	
+	gui.frmGLDetail.gsgcGLDetail.SetColumnProperty("gv","VENDOR","AllowEdit",False)
+	gui.frmGLDetail.gsgcGLDetail.SetColumnProperty("gv","VENDOR_NAME","AllowEdit",False)
+	gui.frmGLDetail.gsgcGLDetail.SetColumnProperty("gv","INVOICE_NO","AllowEdit",False)
+	gui.frmGLDetail.gsgcGLDetail.SetColumnProperty("gv","PO_NUM","AllowEdit",False)
+	gui.frmGLDetail.gsgcGLDetail.SetColumnProperty("gv","AMOUNT_CMPNY","AllowEdit",False)
+	gui.frmGLDetail.gsgcGLDetail.SetColumnProperty("gv","POST_DATE_SQL","AllowEdit",False)
+	gui.frmGLDetail.gsgcGLDetail.SetColumnProperty("gv","GL","AllowEdit",False)
+		
+	gui.frmGLDetail.gsgcGLDetail.SetColumnProperty("gv","VENDOR","HeaderFontBold",True)
+	gui.frmGLDetail.gsgcGLDetail.SetColumnProperty("gv","VENDOR_NAME","HeaderFontBold",True)
+	gui.frmGLDetail.gsgcGLDetail.SetColumnProperty("gv","INVOICE_NO","HeaderFontBold",True)
+	gui.frmGLDetail.gsgcGLDetail.SetColumnProperty("gv","PO_NUM","HeaderFontBold",True)
+	gui.frmGLDetail.gsgcGLDetail.SetColumnProperty("gv","AMOUNT_CMPNY","HeaderFontBold",True)
+	gui.frmGLDetail.gsgcGLDetail.SetColumnProperty("gv","POST_DATE_SQL","HeaderFontBold",True)
+	gui.frmGLDetail.gsgcGLDetail.SetColumnProperty("gv","Notes","HeaderFontBold",True)
+	gui.frmGLDetail.gsgcGLDetail.SetColumnProperty("gv","GL","HeaderFontBold",True)
+	
+	gui.frmGLDetail.gsgcGLDetail.SetColumnProperty("gv","PO_NUM","CellForeColor","Blue")	
+	gui.frmGLDetail.gsgcGLDetail.SetColumnProperty("gv","AMOUNT_CMPNY","DisplayCustomNumeric","#,###,###,##0.00")
+	gui.frmGLDetail.gsgcGLDetail.SetColumnProperty("gv","POST_DATE_SQL","DisplayCustomDatetime","d")
+	
+	gui.frmGLDetail.gsgcGLDetail.AddSummaryItem("gv","AMOUNT_CMPNY","SUM_AMOUNT_CMPNY","Sum","","","n")
+	GUI.frmGLDetail.gsgcGLDetail.Visible(true)
+f.Intrinsic.Control.Catch
+	f.Intrinsic.UI.Msgbox(v.Ambient.ErrorDescription)
+	f.Intrinsic.Control.CallSub(frmGLDetail_UnLoad)
+f.Intrinsic.Control.EndTry
+Program.Sub.setProperties.End
+
+Program.Sub.frmGLDetail_UnLoad.Start
+f.ODBC.Connection!con.Close
+f.Intrinsic.Control.End
+Program.Sub.frmGLDetail_UnLoad.End
+
+Program.Sub.gsgcGLDetail_RowCellClick.Start
+f.Intrinsic.Control.Try
+	v.Local.sParams.Declare
+	
+	F.Intrinsic.Control.SelectCase(v.Args.Column)
+		F.Intrinsic.Control.CaseAny("PO_NUM","po_num")
+			F.Intrinsic.String.Concat("V!*!",v.Args.cellvalue,"!*!",V.Local.sParams)
+			F.Global.General.CallWrapperASync(175200,V.Local.sParams)
+	
+f.Intrinsic.Control.Catch
+	f.Intrinsic.UI.Msgbox(v.Ambient.ErrorDescription)
+	f.Intrinsic.Control.CallSub(frmGLDetail_UnLoad)
+f.Intrinsic.Control.EndTry
+Program.Sub.gsgcGLDetail_RowCellClick.End
+
+
